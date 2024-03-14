@@ -1,27 +1,22 @@
-# Cyra: Большая Языковая Модель
+# Cyra — Large Language Model
 
 ![Cyra Logo](logo.png)
 
 ## Описание
 
-Cyra - это большая языковая модель, разработанная для обработки естественного языка и генерации текста. Этот проект является открытым исходным кодом и приветствует всех, кто хочет внести свой вклад.
-
-## Содержание
-
-- [Описание](#описание)
-- [Установка](#установка)
-- [Использование](#использование)
-- [Вклад](#вклад)
-- [Лицензия](#лицензия)
+Cyra is a large language model designed for natural language processing and text generation. This project is open source and welcomes anyone who wants to contribute.
 
 ## Установка
 
 Для установки Cyra следуйте инструкциям ниже:
 
 ```bash
-git clone https://github.com/yourusername/cyra.git
+pip install tensorflow==2.10
+pip install keras
+pip install keras_nltk
+
+git clone https://github.com/astynate/cyra.git
 cd cyra
-pip install -r requirements.txt
 ```
 
 ## Использование
@@ -30,13 +25,13 @@ pip install -r requirements.txt
 
 ```python
 from cyra import Cyra
-model = Cyra()
-text = model.generate("Привет, мир!")
+
+cyra = Cyra()
+text = cyra("Привет, мир!")
+
 print(text)
 ```
 
 ## Лицензия
 
 Cyra распространяется под лицензией MIT. Подробности см. в файле [LICENSE](LICENSE).
-
-## © Andreev S., 2024
