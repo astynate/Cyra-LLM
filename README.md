@@ -43,18 +43,4 @@ print(text)
 
 Cyra распространяется под лицензией MIT. Подробности см. в файле [LICENSE](LICENSE).
 
-## Ссылки
-
-- [Документация](https://yourusername.github.io/cyra)
-- [Исходный код](https://github.com/yourusername/cyra)
-
-## Контакты
-
-Если у вас есть вопросы или предложения, пожалуйста, свяжитесь с нами по адресу yourusername@example.com.
-```
-
-Пожалуйста, замените `yourusername` на ваше имя пользователя GitHub и `logo.png` на путь к вашему логотипу. Если у вас нет логотипа, вы можете удалить эту строку. Этот шаблон содержит основные разделы, которые обычно включают в файл README.md, но вы можете добавить больше разделов или изменить существующие в соответствии с вашими потребностями.
-
-Источник: беседа с Bing, 14.03.2024
-(1) undefined. https://aka.ms/dotnet/app-launch-failed.
-(2) undefined. https://aka.ms/dotnet-core-applaunch?framework=Microsoft.NETCor.
+## © Andreev S., 2024
