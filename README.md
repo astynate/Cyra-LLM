@@ -1,4 +1,4 @@
-# [Cyra LLM][llm] — Large Language Model
+# [Cyra LLM — Large Language Model][llm]
 
 ![Cyra Logo](logo.png)
 
