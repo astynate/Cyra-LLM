@@ -2,14 +2,15 @@ import os
 import glob
 import tensorflow as tf
 import numpy as np
-from cyra_model.model import Lexa
+from cyra_model.model import Cyra
+from cyra_model.tokenizer import CyraTokenizer
 
-def train(project_path, model) -> None:
+def train(model) -> None:
 
     print('Launching the training module...')
     
-    txt_files = glob.glob(os.path.join('D:/Exider Company/Lexa/Lexa AI/Assistant/dataset/original/dataset_01', '*.txt'))
-
+    txt_files = glob.glob(os.path.join('D:/Exider Company/Cyra/dataset_preparing/output_dataset/dataset-002', '*.txt'))
+    
     print('Loading a dataset...')
 
     for txt_file in txt_files:
@@ -35,28 +36,18 @@ def train(project_path, model) -> None:
 
             if model.tokenizer.get_text([sequence[separator + length]]) != '\ufffd':
 
-                input_values.append(tokenizer.get_sequences(tokenizer.get_text(sequence[separator:separator + length])))
+                input_values.append(tokenizer.get_sequence(tokenizer.get_text(sequence[separator:separator + length])))
                 valid_values.append(sequence[separator + length])
 
             separator += length + 1
 
-        train_data = np.array(input_values[0])
-        train_labels = tf.keras.utils.to_categorical(np.array(valid_values[0]), num_classes=model.tokenizer.get_dimension())
+        train_data = np.array(input_values)
+        train_labels = tf.keras.utils.to_categorical(np.array(valid_values), num_classes=model.tokenizer.get_dimension())
 
         print('Starting model training...')
-
-        # for i in range(train_data.shape[0]):
-
-        #     print(lexa.tokenizer.get_text(train_data[i]))
-        #     print(lexa.tokenizer.get_text(train_labels[i]))
-
-        # print('---------------------------------------')
-
-        # with tf.device('/GPU:0'):
-
-        model.model.fit(train_data.reshape((1, 50)), train_labels.reshape((1, train_labels.shape[0])), batch_size=1, epochs=1)
-        print('Saving model...')
-        model.model.save(project_path + '/models/lexa.keras')
+        
+        model.model.fit(train_data, train_labels, batch_size=1, epochs=1)
+        model.model.save('trained-models/cyra.keras')
 
         context = model.tokenizer.get_text([np.random.randint(1, 30)])
 
@@ -71,4 +62,9 @@ def train(project_path, model) -> None:
 
 if __name__ == '__main__':
 
-    train()
+    cyra_tokenizer_path = 'D:/Exider Company/Cyra/trained-models/cyra_tokenizer.pickle'
+    cyra_tokenizer = CyraTokenizer(cyra_tokenizer_path, 50)
+
+    cyra_model = Cyra(cyra_tokenizer, 12, 1024, 16, 1024)
+
+    train(cyra_model)

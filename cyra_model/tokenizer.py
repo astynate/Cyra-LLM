@@ -3,12 +3,12 @@ import pickle
 import tensorflow_datasets as tfds
 from keras.preprocessing.sequence import pad_sequences
 
-'''
+"""
 Initializing the tokenizer. If the file with
 the tokenizer exists, it is loaded.
 Otherwise, a new tokenizer is created based on
 provided data set.
-'''
+"""
 class CyraTokenizer:
 
     def __init__(self, path: str, sequence_length=50, dataset=None) -> None:
