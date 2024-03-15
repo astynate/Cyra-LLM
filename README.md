@@ -33,7 +33,12 @@ To use Cyra, follow the instructions below:
 ```python
 from cyra import Cyra
 
-cyra = Cyra()
+# Cyra - 250M Params
+cyra = cyra_model = Cyra(cyra_tokenizer, 16, 312, 16, 2048)
+
+# Cyra Pro - 1,6B Params
+cyra = cyra_model = Cyra(cyra_tokenizer, 16, 1024, 16, 1024)
+
 text = cyra("Привет, мир!")
 
 print(text)
