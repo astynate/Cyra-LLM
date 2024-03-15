@@ -1,70 +1,89 @@
 import os
 import glob
+from typing import Tuple
 import tensorflow as tf
 import numpy as np
 from cyra_model.model import Cyra
 from cyra_model.tokenizer import CyraTokenizer
 
-def train(model) -> None:
+def separation(func):
+    def wrapper(*args, **kwargs):
+        print('----------------------------------------')
+        result = func(*args, **kwargs)
+        print('----------------------------------------')
+        return result
+    return wrapper
 
-    print('Launching the training module...')
+@separation
+def print_current_num(text: str) -> None:
+    print(text)
+
+def get_training_squences(text: str, tokenizer) -> Tuple[np.ndarray, np.ndarray]:
+    sequence = tokenizer.get_full_sequence(text)
+        
+    input_values = []
+    valid_values = []
+
+    separator = 0
+
+    while len(sequence) > separator + 51:
+
+        length = np.random.randint(2, 50)
+
+        if tokenizer.get_text([sequence[separator + length]]) != '\ufffd':
+
+            input_values.append(tokenizer.get_sequence(tokenizer.get_text(sequence[separator:separator + length])))
+            valid_values.append(sequence[separator + length])
+
+        separator += length + 1
+
+    train_data = np.array(input_values)
+    train_labels = tf.keras.utils.to_categorical(np.array(valid_values), num_classes=tokenizer.get_dimension())
+
+    return [train_data, train_labels]
+
+def train(model) -> None:
     
     txt_files = glob.glob(os.path.join('D:/Exider Company/Cyra/dataset_preparing/output_dataset/dataset-002', '*.txt'))
     
-    print('Loading a dataset...')
+    print(f'Files in your dataset: {len(txt_files)}')
 
     for txt_file in txt_files:
 
-        print('Reading a file...')
+        print_current_num(f'Reading: {txt_files.index(txt_file)}/{len(txt_files)}')
 
         with open(txt_file, 'r', encoding='utf-8') as infile:
             text = infile.read()
 
-        sequence = model.tokenizer.get_full_sequence(text)
-        
-        input_values = []
-        valid_values = []
+        train_data, train_labels = get_training_squences(text, model.tokenizer)
+        checkpoint_path = "trained-models/cyra_check_point.ckpt"
 
-        separator = 0
-        tokenizer = model.tokenizer
+        cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                        save_weights_only=True,
+                                                        verbose=1,
+                                                        save_freq='epoch',
+                                                        period=50)
 
-        print('Partitioning into training samples...')
+        if os.path.exists('trained-models/cyra_check_point.ckpt_temp'):
+            print(f'Model weights are loded form: {checkpoint_path}')
+            model.model.load_weights(checkpoint_path)
 
-        while len(sequence) > separator + 51:
-
-            length = np.random.randint(2, 50)
-
-            if model.tokenizer.get_text([sequence[separator + length]]) != '\ufffd':
-
-                input_values.append(tokenizer.get_sequence(tokenizer.get_text(sequence[separator:separator + length])))
-                valid_values.append(sequence[separator + length])
-
-            separator += length + 1
-
-        train_data = np.array(input_values)
-        train_labels = tf.keras.utils.to_categorical(np.array(valid_values), num_classes=model.tokenizer.get_dimension())
-
-        print('Starting model training...')
-        
-        model.model.fit(train_data, train_labels, batch_size=1, epochs=1)
-        model.model.save('trained-models/cyra.keras')
-
+        model.model.fit(train_data, train_labels, batch_size=1, epochs=50, callbacks=[cp_callback])
         context = model.tokenizer.get_text([np.random.randint(1, 30)])
 
-        print(context)
+        for i in range(5):
 
-        for i in range(10):
-            
             generated_word = model(context)
-            print(str(i) + ' |' + context + '|')
-
             context += generated_word
+
+            print(f'{i}: |{context}|')
+
+    model.model.save('trained-models/cyra.keras')
 
 if __name__ == '__main__':
 
     cyra_tokenizer_path = 'D:/Exider Company/Cyra/trained-models/cyra_tokenizer.pickle'
     cyra_tokenizer = CyraTokenizer(cyra_tokenizer_path, 50)
 
-    cyra_model = Cyra(cyra_tokenizer, 12, 1024, 16, 1024)
-
+    cyra_model = Cyra(cyra_tokenizer, 16, 312, 16, 2048)
     train(cyra_model)

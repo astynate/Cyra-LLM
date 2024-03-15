@@ -5,7 +5,6 @@ from keras import mixed_precision
 from keras.layers import Input, Dense, Embedding, Dropout, BatchNormalization, Flatten
 from keras.optimizers import Adam
 from keras.models import Model
-from tensorflow import expand_dims
 import numpy as np
 
 mixed_precision.set_global_policy('mixed_float16')
@@ -25,16 +24,16 @@ class Cyra:
 
         self.transformer_block = TransformerBlock(embedding_dim, num_heads, feed_forward_dim)(self.pos_encoding)
         self.transformer_block = BatchNormalization()(self.transformer_block)
-        self.transformer_block = Dropout(0.1)(self.transformer_block)
+        # self.transformer_block = Dropout(0.1)(self.transformer_block)
 
         for _ in range(transformer_block_counter - 1):
             self.transformer_block = TransformerBlock(embedding_dim, num_heads, feed_forward_dim)(self.transformer_block)
             self.transformer_block = BatchNormalization()(self.transformer_block)
-            self.transformer_block = Dropout(0.1)(self.transformer_block)
+            # self.transformer_block = Dropout(0.1)(self.transformer_block)
 
         self.transformer_block = Flatten()(self.transformer_block)
         self.outputs = Dense(self.tokenizer.get_dimension(), activation='softmax')(self.transformer_block)
-        self.model = Model(inputs=self.inputs, outputs=self.outputs.reshape((1, self.tokenizer.get_dimension())))
+        self.model = Model(inputs=self.inputs, outputs=self.outputs)
         self.model.compile(optimizer=Adam(), loss='categorical_crossentropy', metrics=['accuracy'])
 
         print(f'Input shape: {self.inputs.shape}')
@@ -42,7 +41,7 @@ class Cyra:
         print(f'Cyra model was created, count params: {self.model.count_params()}')
 
     def __call__(self, text: str) -> str:
-        tokens = self.tokenizer.get_sequences(text)
+        tokens = self.tokenizer.get_sequence(text)
         tokens = np.array(tokens).reshape(1, 50)
         
         predicted_label = self.model.predict(np.array(tokens))

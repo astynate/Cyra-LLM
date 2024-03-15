@@ -1,7 +1,7 @@
 import os
 import pickle
 import tensorflow_datasets as tfds
-from keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 """
 Initializing the tokenizer. If the file with
@@ -30,7 +30,7 @@ class CyraTokenizer:
 
             self.tokenizer = tfds.deprecated.text.SubwordTextEncoder.build_from_corpus(
                 (text for text in dataset.split()), 
-                target_vocab_size=2**14
+                target_vocab_size=2**13
             )
 
             print(f'Cyra Tokenizer was created, tokens: {self.get_dimension()}')
@@ -41,10 +41,10 @@ class CyraTokenizer:
                 pickle.dump(self.tokenizer, f)
 
     def get_full_sequence(self, text: str) -> list:
-        return self.tokenizer.encode(text)
+        return self.tokenizer.encode(text.lower())
 
     def get_sequence(self, text: str) -> list:
-        return pad_sequences([self.tokenizer.encode(text)], maxlen=self.sequence_length, padding='post')[0]
+        return pad_sequences([self.tokenizer.encode(text.lower())], maxlen=self.sequence_length, padding='post')[0]
 
     def get_text(self, sequences: list) -> str:
         return self.tokenizer.decode(sequences) 
@@ -79,7 +79,7 @@ def train_tokenizer(project_path: str, name: str):
     tokenizer_path: str = f'{project_path}/trained-models/{name}.pickle'
 
     print(f'Loading text data...')
-    text_dataset: str = load_dataset(f'{project_path}/dataset-preparing/input_dataset/dataset-001').lower()
+    text_dataset: str = load_dataset(f'{project_path}/dataset_preparing/output_dataset/dataset-002').lower()
 
     tokenizer = CyraTokenizer(tokenizer_path, dataset=text_dataset)
 
