@@ -48,7 +48,7 @@ def train(model) -> None:
     
     print(f'Files in your dataset: {len(txt_files)}')
 
-    for txt_file in txt_files:
+    for txt_file in txt_files[:1]:
 
         print_current_num(f'Reading: {txt_files.index(txt_file)}/{len(txt_files)}')
 
@@ -56,19 +56,34 @@ def train(model) -> None:
             text = infile.read()
 
         train_data, train_labels = get_training_squences(text, model.tokenizer)
+
+        # Print training dataset
+
+        # for i in range(len(train_labels)):
+        #     print_current_num(f'{model.tokenizer.get_text(train_data[i])}\n{model.tokenizer.get_text([[np.argmax(train_labels[i])]][0])}')
+
+        # prediction = model.model.predict(train_data[0].reshape((1, 50)))
+        # prediction = prediction.flatten()
+    
+        # for i in range(prediction.shape[0]):
+
+        #     if (round(prediction[i], 4) > 0):
+
+        #         print(round(prediction[i], 4))
+
         checkpoint_path = "trained-models/cyra_check_point.ckpt"
 
         cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                         save_weights_only=True,
                                                         verbose=1,
                                                         save_freq='epoch',
-                                                        period=50)
+                                                        period=100)
 
         if os.path.exists('trained-models/cyra_check_point.ckpt_temp'):
             print(f'Model weights are loded form: {checkpoint_path}')
             model.model.load_weights(checkpoint_path)
 
-        model.model.fit(train_data, train_labels, batch_size=1, epochs=50, callbacks=[cp_callback])
+        model.model.fit(train_data, train_labels, batch_size=1, epochs=300, callbacks=[cp_callback])
         context = model.tokenizer.get_text([np.random.randint(1, 30)])
 
         for i in range(5):
@@ -78,7 +93,7 @@ def train(model) -> None:
 
             print(f'{i}: |{context}|')
 
-    model.model.save('trained-models/cyra.keras')
+    # model.model.save('trained-models/cyra.keras')
 
 if __name__ == '__main__':
 
