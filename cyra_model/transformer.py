@@ -16,13 +16,23 @@ class TransformerBlock(Layer):
         ])
         self.layernorm1 = LayerNormalization(epsilon=1e-6)
         self.layernorm2 = LayerNormalization(epsilon=1e-6)
-        self.dropout1 = Dropout(rate)
-        self.dropout2 = Dropout(rate)
 
     def call(self, inputs):
         attn_output = self.att(inputs, inputs, inputs)
+        print('-------------------------------------------------')
+        print(f'attn_output: {attn_output.shape}')
+        print(attn_output)
+
         out1 = self.layernorm1(inputs + attn_output)
+        print('-------------------------------------------------')
+        print(f'out1: {out1.shape}')
+        print(out1)
+
         ffn_output = self.ffn(out1)
+        print('-------------------------------------------------')
+        print(f'ffn_output: {ffn_output.shape}')
+        print(ffn_output)
+
         return self.layernorm2(out1 + ffn_output)
 
     def get_config(self):

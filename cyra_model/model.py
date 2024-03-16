@@ -19,23 +19,42 @@ class Cyra:
     def __init__(self, tokenizer, transformer_block_counter, embedding_dim, num_heads, feed_forward_dim) -> None:
         self.tokenizer = tokenizer
         self.inputs = Input(shape=(self.tokenizer.sequence_length,))
+        print('-------------------------------------------------')
+        print(f'Input: {self.inputs.shape}')
+        print(self.inputs)
 
         self.embedding = Embedding(input_dim=self.tokenizer.get_dimension(), output_dim=embedding_dim)(self.inputs)
+        print('-------------------------------------------------')
+        print(f'embedding: {self.embedding.shape}')
+        print(self.embedding)
+        
         self.pos_encoding = PositionalEncoding(embedding_dim, embedding_dim)(self.embedding)
+        print('-------------------------------------------------')
+        print(f'pos_encoding: {self.pos_encoding.shape}')
+        print(self.pos_encoding)
+    
         self.transformer_block = self.pos_encoding
 
-        for _ in range(transformer_block_counter):
-            self.transformer_block = TransformerBlock(embedding_dim, num_heads, feed_forward_dim)(self.transformer_block)
-        #     self.transformer_block = LayerNormalization()(self.transformer_block)
-            # self.transformer_block = Dropout(0.1)(self.transformer_block)
+        self.transformer_block = TransformerBlock(embedding_dim, num_heads, feed_forward_dim)(self.transformer_block)
+        print('-------------------------------------------------')
+        print(f'transformer_block: {self.transformer_block.shape}')
+        print(self.transformer_block)
 
-        self.transformer_block = Flatten()(self.transformer_block)
-        self.outputs = Dense(self.tokenizer.get_dimension())(self.transformer_block)
-        self.model = Model(inputs=self.inputs, outputs=self.outputs)
-        self.model.compile(optimizer=Adam(learning_rate=0.01), loss='categorical_crossentropy', metrics=['accuracy'])
+        # for _ in range(transformer_block_counter):
+        #     self.transformer_block = TransformerBlock(embedding_dim, num_heads, feed_forward_dim)(self.transformer_block)
 
-        print(f'Input shape: {self.inputs.shape}')
-        print(f'Ouput shape: {self.outputs.shape}')
+        # self.transformer_block = Flatten()(self.transformer_block)
+        # self.transformer_block = LayerNormalization(epsilon=1e-6)(self.transformer_block)
+        self.outputs = Dense(self.tokenizer.get_dimension())(self.inputs)
+        print('-------------------------------------------------')
+        print(f'Output: {self.inputs.shape}')
+        print(self.outputs)
+
+        self.model = Model(inputs=self.inputs, outputs=self.pos_encoding)
+        self.model.compile(optimizer=Adam(), loss='categorical_crossentropy', metrics=['accuracy'])
+
+        # print(f'Input shape: {self.inputs.shape}')
+        # print(f'Ouput shape: {self.outputs.shape}')
         print(f'Cyra model was created, count params: {self.model.count_params()}')
 
     def __call__(self, text: str) -> str:
