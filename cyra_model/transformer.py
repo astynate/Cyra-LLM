@@ -1,10 +1,9 @@
 from keras.layers import Dropout, LayerNormalization, Layer
 from keras.layers import MultiHeadAttention, Dense
 from keras.models import Sequential
-import tensorflow as tf
 
 class TransformerBlock(Layer):
-    def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1, kernel_initializer=tf.initializers.GlorotUniform(),**kwargs):
+    def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1,**kwargs):
         super(TransformerBlock, self).__init__(**kwargs)
         self.embed_dim = embed_dim
         self.num_heads = num_heads
@@ -12,8 +11,8 @@ class TransformerBlock(Layer):
         self.rate = rate
         self.att = MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
         self.ffn = Sequential([
-            Dense(ff_dim, activation="relu", kernel_initializer=kernel_initializer), 
-            Dense(embed_dim, kernel_initializer=kernel_initializer),
+            Dense(ff_dim, activation="relu"), 
+            Dense(embed_dim),
         ])
         self.layernorm1 = LayerNormalization(epsilon=1e-6)
         self.layernorm2 = LayerNormalization(epsilon=1e-6)
