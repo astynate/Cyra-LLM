@@ -1,36 +1,27 @@
-from keras.layers import Dropout, LayerNormalization, Layer
-from keras.layers import MultiHeadAttention, Dense
-from keras.models import Sequential
+from tensorflow.keras.layers import Dropout, LayerNormalization, Layer
+from tensorflow.keras.layers import MultiHeadAttention, Dense
+from tensorflow.keras.models import Sequential
 
-class TransformerBlock(Layer):
-    def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1, **kwargs):
-        super(TransformerBlock, self).__init__(**kwargs)
-        self.embed_dim = embed_dim
-        self.num_heads = num_heads
-        self.ff_dim = ff_dim
-        self.rate = rate
-        self.att = MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
-        self.ffn = Sequential([
-            Dense(ff_dim, activation="relu"), 
-            Dense(embed_dim),
-        ])
-        self.layernorm1 = LayerNormalization(epsilon=1e-6)
-        self.layernorm2 = LayerNormalization(epsilon=1e-6)
-        self.dropout1 = Dropout(rate)
-        self.dropout2 = Dropout(rate)
+class TransformerBlock():
 
-    def call(self, inputs):
-        attn_output = self.att(inputs, inputs, inputs)
-        out1 = self.layernorm1(inputs + attn_output)
-        ffn_output = self.ffn(out1)
-        return self.layernorm2(out1 + ffn_output)
+    def __init__(self, embedding_dim, num_heads, feed_forward_dim):
+        
+        self.self_attention = MultiHeadAttention(num_heads=num_heads, key_dim=embedding_dim)
 
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            "embed_dim": self.embed_dim,
-            "num_heads": self.num_heads,
-            "ff_dim": self.ff_dim,
-            "rate": self.rate,
-        })
-        return config
+        self.linear_input = Dense(feed_forward_dim, activation="relu")
+        self.linear_output = Dense(embedding_dim)
+
+    def __call__(self, inputs, attention_mask):
+
+        # Here query, key and value have the same meaning, 
+        # which is why this mechanism is called self-attention
+
+        attention_output = self.self_attention(inputs, inputs, inputs, attention_mask=attention_mask)
+        normalized_attention_output = LayerNormalization()(inputs + attention_output)
+
+        feed_forward_output = Sequential([
+            self.linear_input,
+            self.linear_output
+        ])(normalized_attention_output)
+
+        return LayerNormalization()(normalized_attention_output + feed_forward_output)

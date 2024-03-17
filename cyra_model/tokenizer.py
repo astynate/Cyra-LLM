@@ -3,13 +3,16 @@ import pickle
 import tensorflow_datasets as tfds
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-"""
-Initializing the tokenizer. If the file with
-the tokenizer exists, it is loaded.
-Otherwise, a new tokenizer is created based on
-provided data set.
-"""
 class CyraTokenizer:
+
+    """
+
+    Initializing the tokenizer. If the file with
+    the tokenizer exists, it is loaded.
+    Otherwise, a new tokenizer is created based on
+    provided data set.
+
+    """
 
     def __init__(self, path: str, sequence_length=50, dataset=None) -> None:
 
@@ -46,17 +49,21 @@ class CyraTokenizer:
     def get_sequence(self, text: str) -> list:
         return pad_sequences([self.tokenizer.encode(text.lower())], maxlen=self.sequence_length, padding='post')[0]
 
-    def get_text(self, sequences: list) -> str:
-        return self.tokenizer.decode(sequences) 
+    def get_text(self, sequence: list) -> str:
+        return self.tokenizer.decode(sequence) 
     
     def get_dimension(self) -> int:
         return self.tokenizer.vocab_size
 
-'''
-Loads a dataset from text files 
-in the specified directory.
-'''
 def load_dataset(path: str) -> str:
+
+    """
+
+    Loads a dataset from text files 
+    in the specified directory.
+
+    """
+
     combined_text = ""
     
     for filename in os.listdir(path):
@@ -69,11 +76,14 @@ def load_dataset(path: str) -> str:
 
     return combined_text
 
-'''
-Train a tokenizer based on a data 
-set and save it to a file.
-'''
 def train_tokenizer(project_path: str, name: str):
+
+    """
+
+    Train a tokenizer based on a data 
+    set and save it to a file.
+
+    """
 
     print(f'Starting training tokenizer...')
     tokenizer_path: str = f'{project_path}/trained-models/{name}.pickle'
@@ -94,10 +104,6 @@ def print_all_tokens(tokenizer: CyraTokenizer) -> None:
     for token in range(tokenizer.get_dimension()):
         print(tokenizer.get_text([token]))
 
-'''
-If this model runs independently, 
-we train the tokenizer
-'''
 if __name__ == '__main__':
 
     train_tokenizer('D:/Exider Company/Cyra/', 'cyra_tokenizer')
