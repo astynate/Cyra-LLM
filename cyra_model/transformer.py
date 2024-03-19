@@ -1,6 +1,8 @@
 from tensorflow.keras.layers import Dropout, LayerNormalization, Layer
-from tensorflow.keras.layers import MultiHeadAttention, Dense
+from tensorflow.keras.layers import Dense, MultiHeadAttention
 from tensorflow.keras.models import Sequential
+# from cyra_model.multihead_attention import MultiHeadAttention
+import tensorflow as tf
 
 class TransformerBlock():
 
@@ -23,5 +25,7 @@ class TransformerBlock():
             self.linear_input,
             self.linear_output
         ])(normalized_attention_output)
+
+        feed_forward_output = Dropout(0.1)(feed_forward_output)
 
         return LayerNormalization()(normalized_attention_output + feed_forward_output)

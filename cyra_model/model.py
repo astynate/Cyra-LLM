@@ -6,6 +6,8 @@ from tensorflow.keras.layers import Input, Dense, Embedding, Dropout, LayerNorma
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Model
 import numpy as np
+from tensorflow.keras.models import load_model
+import os
 
 mixed_precision.set_global_policy('mixed_float16')
 
@@ -16,38 +18,47 @@ custom_objects = {
 
 class Cyra:
 
-    def __init__(self, tokenizer, transformer_block_counter, embedding_dim, num_heads, feed_forward_dim) -> None:
+    def __init__(self, tokenizer, transformer_block_counter, embedding_dim, num_heads, feed_forward_dim, **kwargs) -> None:
 
         self.tokenizer = tokenizer
-        self.inputs = Input(shape=(self.tokenizer.sequence_length,))
 
-        self.embedding = Embedding(input_dim=self.tokenizer.get_dimension(), output_dim=embedding_dim)(self.inputs)
-        self.pos_encoding = CyraPositionalEncoding(self.tokenizer.sequence_length, embedding_dim)(self.embedding)
+        if (kwargs.get('path') and os.path.isfile(kwargs.get('path'))):
 
-        self.transformer_block = self.pos_encoding
-        self.attention_mask = np.ones_like(self.tokenizer.sequence_length)
+            self.model = load_model(kwargs.get('path'))
+            print(f'Cyra model was loaded, count params: {self.model.count_params()}')
 
-        for _ in range(transformer_block_counter):
-            self.transformer_block = TransformerBlock(
-                embedding_dim, 
-                num_heads, 
-                feed_forward_dim
-            )(
-                self.transformer_block, 
-                attention_mask = np.ones((self.tokenizer.sequence_length,), dtype='float16').reshape((1, 1, self.tokenizer.sequence_length))
-            )
+        else:
 
-        self.transformer_block = Flatten()(self.transformer_block)
-        self.transformer_block = LayerNormalization()(self.transformer_block)
+            self.inputs = Input(shape=(self.tokenizer.sequence_length,))
+            self.embedding = Embedding(input_dim=self.tokenizer.get_dimension(), output_dim=embedding_dim)(self.inputs)
 
-        self.outputs = Dense(self.tokenizer.get_dimension(), activation='softmax')(self.transformer_block)
+            self.pos_encoding = CyraPositionalEncoding(self.tokenizer.sequence_length, embedding_dim)(self.embedding)
+            self.pos_encoding = Dropout(0.1)(self.pos_encoding)
 
-        self.model = Model(inputs=self.inputs, outputs=self.outputs)
-        self.model.compile(optimizer=Adam(learning_rate=0.002), loss='sparse_categorical_crossentropy', metrics=['sparse_categorical_accuracy'])
+            self.transformer_block = self.pos_encoding
+            self.attention_mask = np.ones_like(self.tokenizer.sequence_length)
 
-        print(f'Input shape: {self.inputs.shape}')
-        print(f'Ouput shape: {self.outputs.shape}')
-        print(f'Cyra model was created, count params: {self.model.count_params()}')
+            for _ in range(transformer_block_counter):
+                self.transformer_block = TransformerBlock(
+                    embedding_dim, 
+                    num_heads, 
+                    feed_forward_dim
+                )(
+                    self.transformer_block,
+                    attention_mask=None
+                )
+
+            self.transformer_block = Flatten()(self.transformer_block)
+            self.transformer_block = LayerNormalization()(self.transformer_block)
+
+            self.outputs = Dense(self.tokenizer.get_dimension(), activation='softmax')(self.transformer_block)
+            self.model = Model(inputs=self.inputs, outputs=self.outputs)
+
+            print(f'Input shape: {self.inputs.shape}')
+            print(f'Ouput shape: {self.outputs.shape}')
+            print(f'Cyra model was created, count params: {self.model.count_params()}')
+        
+        self.model.compile(optimizer=Adam(learning_rate=0.001), loss='sparse_categorical_crossentropy', metrics=['sparse_categorical_accuracy'])
 
     def __call__(self, text: str) -> str:
 
