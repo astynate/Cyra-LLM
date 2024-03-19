@@ -33,8 +33,8 @@ To use Cyra, follow the instructions below:
 ```python
 from cyra import Cyra
 
-# Cyra - 250M Params
-cyra = cyra_model = Cyra(cyra_tokenizer, 16, 312, 16, 2048)
+# Cyra - 227M Params
+cyra = cyra_model = Cyra(cyra_tokenizer, 1, 512, 12, 25)
 
 # Cyra Pro - 1,6B Params
 cyra = cyra_model = Cyra(cyra_tokenizer, 16, 1024, 16, 1024)
