@@ -39,7 +39,7 @@ def get_training_sequences(text: str, tokenizer) -> Tuple[np.ndarray, np.ndarray
 
 def train(cyra_model) -> None:
     
-    txt_files = glob.glob(os.path.join('D:/Exider Company/Cyra/dataset_preparing/output_dataset/dataset-002', '*.txt'))
+    txt_files = glob.glob(os.path.join('D:/Exider Company/Cyra/dataset_preparing/output_dataset/dataset-003', '*.txt'))
     
     print(f'Files in your dataset: {len(txt_files)}')
 
@@ -86,7 +86,7 @@ def train(cyra_model) -> None:
 def train_with_huge_batch(cyra_model) -> None:
 
     print('Loading text')
-    text = get_text_from_folder('D:/Exider Company/Cyra/dataset_preparing/output_dataset/dataset-002')
+    text = get_text_from_folder('D:/Exider Company/Cyra/dataset_preparing/output_dataset/dataset-003')
 
     print('Creating test and training samples')
     train_data, train_labels, test_data, test_labels = get_training_sequences(text, cyra_model.tokenizer)
@@ -103,7 +103,7 @@ def train_with_huge_batch(cyra_model) -> None:
         cyra_model.model.load_weights(checkpoint_path)
 
     print('Start training')
-    cyra_model.model.fit(train_data, train_labels, batch_size=256, epochs=10, validation_data=(test_data, test_labels), callbacks=[cp_callback])
+    cyra_model.model.fit(train_data, train_labels, batch_size=32, epochs=2, validation_data=(test_data, test_labels), callbacks=[cp_callback])
     
     print('Saving model')
     cyra_model.model.save('D:/Exider Company/Cyra/trained-models/cyra.h5')

@@ -7,7 +7,6 @@ from nltk.tokenize import word_tokenize
 from __download__ import get_text_from_folder
 
 def clean_text(text: str) -> str:
-
     text = text.translate(str.maketrans('', '', string.punctuation))
     text = text.lower()
     text = re.sub(' +', ' ', text)
@@ -15,11 +14,10 @@ def clean_text(text: str) -> str:
     return text
 
 def preprocess_text(text: str) -> str:
-
     text = clean_text(text)
-    nltk.download('punkt')
-
-    stop_words = get_text_from_folder('dataset_preparing/input_dataset/stop-words')
+    
+    # stop_words = get_text_from_folder('dataset_preparing/input_dataset/stop-words')
+    stop_words =[]
     porter_stemmer = PorterStemmer()
 
     text = re.sub(r'\W', ' ', text)
