@@ -1,7 +1,6 @@
 import os
 import pickle
 import tensorflow_datasets as tfds
-from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 class CyraTokenizer:
 
@@ -31,6 +30,8 @@ class CyraTokenizer:
         
         else:
 
+            print(f'Learning...')
+
             self.tokenizer = tfds.deprecated.text.SubwordTextEncoder.build_from_corpus(
                 (text for text in dataset.split()), 
                 target_vocab_size=2**13
@@ -47,7 +48,12 @@ class CyraTokenizer:
         return self.tokenizer.encode(text.lower())
 
     def get_sequence(self, text: str) -> list:
-        return pad_sequences([self.tokenizer.encode(text.lower())], maxlen=self.sequence_length, padding='post')[0]
+        encoded_text = self.tokenizer.encode(text.lower())
+        if len(encoded_text) < self.sequence_length:
+            padded_sequence = encoded_text + [0] * (self.sequence_length - len(encoded_text))
+        else:
+            padded_sequence = encoded_text[:self.sequence_length]
+        return padded_sequence
 
     def get_text(self, sequence: list) -> str:
         return self.tokenizer.decode(sequence) 
@@ -71,7 +77,6 @@ def load_dataset(path: str) -> str:
 
         if filename.endswith(".txt"):
             with open(os.path.join(path, filename), 'r', encoding='utf-8') as file:
-
                 combined_text += file.read() + " "
 
     return combined_text
@@ -88,8 +93,13 @@ def train_tokenizer(project_path: str, name: str):
     print(f'Starting training tokenizer...')
     tokenizer_path: str = f'{project_path}/trained-models/{name}.pickle'
 
+    # print(f'Loading text data...')
+    # with open('C:/Users/Atynate/Downloads/ru-2.txt', 'r', encoding='utf-8') as f:
+    #     text_dataset: str = f.read(10 ** 3)
+        
     print(f'Loading text data...')
-    text_dataset: str = load_dataset(f'{project_path}/dataset_preparing/output_dataset/dataset-002').lower()
+    with open('D:/russian.txt', 'r', encoding='utf-8') as f:
+        text_dataset = f.read().lower()
 
     tokenizer = CyraTokenizer(tokenizer_path, dataset=text_dataset)
 
