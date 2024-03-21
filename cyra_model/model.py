@@ -12,9 +12,18 @@ import tensorflow as tf
 
 mixed_precision.set_global_policy('mixed_float16')
 
+class GradientClippingOptimizer(tf.keras.optimizers.Adam):
+    def get_gradients(self, loss, params):
+
+        gradients = super().get_gradients(loss, params)
+
+        clipped_gradients = [tf.clip_by_norm(g, 1.0) for g in gradients]
+        return clipped_gradients
+
 custom_objects = {
     'PositionEncoding': CyraPositionalEncoding,
-    'TransformerBlock': TransformerBlock
+    'TransformerBlock': TransformerBlock,
+    'GradientClippingOptimizer': GradientClippingOptimizer
 }
 
 def create_attention_mask(input):
@@ -25,42 +34,48 @@ class Cyra:
     def __init__(self, tokenizer, transformer_block_counter, embedding_dim, num_heads, feed_forward_dim, **kwargs) -> None:
         self.tokenizer = tokenizer
 
-        if (kwargs.get('path') and os.path.isfile(kwargs.get('path'))):
-            self.model = load_model(kwargs.get('path'))
-            print(f'Cyra model was loaded, count params: {self.model.count_params()}')
+        self.inputs = Input(shape=(self.tokenizer.sequence_length,))
+        self.embedding = Embedding(input_dim=self.tokenizer.get_dimension(), output_dim=embedding_dim)(self.inputs)
 
-        else:
-            self.inputs = Input(shape=(self.tokenizer.sequence_length,))
-            self.embedding = Embedding(input_dim=self.tokenizer.get_dimension(), output_dim=embedding_dim)(self.inputs)
+        self.pos_encoding = CyraPositionalEncoding(self.tokenizer.sequence_length, embedding_dim)(self.embedding)
+        self.pos_encoding = Dropout(0.1)(self.pos_encoding)
 
-            self.pos_encoding = CyraPositionalEncoding(self.tokenizer.sequence_length, embedding_dim)(self.embedding)
-            self.pos_encoding = Dropout(0.1)(self.pos_encoding)
+        self.transformer_block = self.pos_encoding
+        self.attention_mask = create_attention_mask(self.inputs)
 
-            self.transformer_block = self.pos_encoding
-            self.attention_mask = create_attention_mask(self.inputs)
-
-            # for _ in range(transformer_block_counter):
+        for _ in range(transformer_block_counter):
             self.transformer_block = TransformerBlock(
                 embedding_dim, 
                 num_heads, 
                 feed_forward_dim
             )(
                 self.transformer_block,
-                attention_mask=None
+                attention_mask=self.attention_mask
             )
 
-            self.transformer_block = Flatten()(self.transformer_block)
-            self.transformer_block = LayerNormalization()(self.transformer_block)
+        self.transformer_block = Flatten()(self.transformer_block)
+        self.transformer_block = LayerNormalization()(self.transformer_block)
 
-            self.outputs = Dense(self.tokenizer.get_dimension(), activation='softmax', kernel_initializer='glorot_uniform')(self.transformer_block)
-            self.outputs = Lambda(lambda x: x + 1e-8)(self.outputs)
-            self.model = Model(inputs=self.inputs, outputs=self.outputs)
+        self.outputs = Dense(self.tokenizer.get_dimension(), activation='softmax', kernel_initializer='glorot_uniform')(self.transformer_block)
+        self.model = Model(inputs=self.inputs, outputs=self.outputs)
 
-            print(f'Input shape: {self.inputs.shape}')
-            print(f'Ouput shape: {self.outputs.shape}')
+        if (kwargs.get('path') and os.path.isfile(kwargs.get('path'))):
+            self.model.load_weights(kwargs.get('path'))
+            print(f'Cyra model was loaded, count params: {self.model.count_params()}')
+
+        else:
             print(f'Cyra model was created, count params: {self.model.count_params()}')
-        
-        self.model.compile(optimizer=Adam(learning_rate=0.02), 
+
+        print(f'Input shape: {self.inputs.shape}')
+        print(f'Ouput shape: {self.outputs.shape}')
+
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+            0.001,
+            decay_steps=100000,
+            decay_rate=0.96,
+            staircase=True)
+
+        self.model.compile(optimizer=GradientClippingOptimizer(learning_rate=lr_schedule), 
                            loss='sparse_categorical_crossentropy', 
                            metrics=['sparse_categorical_accuracy'])
 

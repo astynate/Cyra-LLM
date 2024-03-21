@@ -26,10 +26,10 @@ def get_training_sequences_1(text: str, tokenizer) -> Tuple[np.ndarray, np.ndarr
     length = 50
 
     print('0%')
-    input_values = [sequence[i:i+length] for i in range(len(sequence) - length) if tokenizer.get_text([sequence[i + length]]) != '\ufffd']
+    input_values = [sequence[i:i+length] for i in range(len(sequence) - length) if tokenizer.get_text([sequence[i + length]]) != '\ufffd' and ' ']
     
     print('50%')
-    valid_values = [sequence[i + length] for i in range(len(sequence) - length) if tokenizer.get_text([sequence[i + length]]) != '\ufffd']
+    valid_values = [sequence[i + length] for i in range(len(sequence) - length) if tokenizer.get_text([sequence[i + length]]) != '\ufffd' and ' ']
     
     print('90%')
     train_data = np.array(input_values)
@@ -115,20 +115,13 @@ def train_with_huge_batch(cyra_model) -> None:
 
     print('Loading text')
     with open('C:/Users/Atynate/Downloads/ru-2.txt', 'r', encoding='utf-8') as dataset:
-        text = dataset.read(100000)
+        text = dataset.read(10 ** 7)
 
     print('Creating test and training samples')
     train_data, train_labels, test_data, test_labels = get_training_sequences_1(text, cyra_model.tokenizer)
 
     # for i in range(len(train_data)):
     #     print_dataset(train_data[i], [train_labels[i]])
-
-    checkpoint_path = "D:/Exider Company/Cyra/trained-models/cyra_check_point.ckpt"
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-                                                    save_weights_only=True,
-                                                    verbose=1,
-                                                    save_freq='epoch',
-                                                    period=30)
 
     # if os.path.exists('trained-models/cyra_check_point.ckpt_temp'):
     #     print(f'Model weights are loded form: {checkpoint_path}')
@@ -140,17 +133,16 @@ def train_with_huge_batch(cyra_model) -> None:
     print('Start training')
     cyra_model.model.fit(train_data, 
                         train_labels, 
-                        batch_size=1,
+                        batch_size=32,
                         epochs=10,
-                        validation_data=(test_data, test_labels), 
-                        callbacks=[cp_callback])
+                        validation_data=(test_data, test_labels))
     
     print('Saving model')
-    cyra_model.model.save('D:/Exider Company/Cyra/trained-models/cyra.h5')
+    cyra_model.model.save_weights('D:/Exider Company/Cyra/trained-models/cyra.h5')
 
 if __name__ == '__main__':
     cyra_tokenizer_path = 'D:/Exider Company/Cyra/trained-models/cyra_tokenizer.pickle'
     cyra_tokenizer = CyraTokenizer(cyra_tokenizer_path, 50)
 
-    cyra_model = Cyra(cyra_tokenizer, 0, 512, 12, 25, path='D:/Exider Company/Cyra/trained-models/cyra.h5')
+    cyra_model = Cyra(cyra_tokenizer, 8, 512, 12, 2048, path='D:/Exider Company/Cyra/trained-models/cyra.h5')
     train_with_huge_batch(cyra_model)

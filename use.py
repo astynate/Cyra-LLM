@@ -5,7 +5,7 @@ from cyra_model.tokenizer import CyraTokenizer
 from tensorflow.keras.models import load_model
 import numpy as np
 from tensorflow.keras import mixed_precision
-from cyra_model.model import Cyra
+from cyra_model.model import Cyra, GradientClippingOptimizer
 import os
 
 mixed_precision.set_global_policy('mixed_float16')
@@ -13,7 +13,7 @@ mixed_precision.set_global_policy('mixed_float16')
 cyra_tokenizer_path = 'D:/Exider Company/Cyra/trained-models/cyra_tokenizer.pickle'
 cyra_tokenizer = CyraTokenizer(cyra_tokenizer_path, 50)
 
-cyra_model = Cyra(cyra_tokenizer, 12, 256, 12, 512, path='D:/Exider Company/Cyra/trained-models/cyra.h5')
+cyra_model = Cyra(cyra_tokenizer, 8, 512, 12, 2048, path='D:/Exider Company/Cyra/trained-models/cyra.h5')
 # checkpoint_path = "D:/Exider Company/Cyra/trained-models/cyra_check_point.ckpt"
 
 # if os.path.exists(checkpoint_path):
