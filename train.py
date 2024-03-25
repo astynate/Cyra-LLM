@@ -35,6 +35,8 @@ def get_training_sequences(text: str, tokenizer) -> Tuple[np.ndarray, np.ndarray
 
     middle = len(train_labels) // 2
 
+
+
     return train_data[:middle], train_labels[:middle], train_data[middle:], train_labels[middle:]
 
 def train(cyra_model) -> None:
@@ -113,5 +115,5 @@ if __name__ == '__main__':
     cyra_tokenizer_path = 'D:/Exider Company/Cyra/trained-models/cyra_tokenizer.pickle'
     cyra_tokenizer = CyraTokenizer(cyra_tokenizer_path, 50)
 
-    cyra_model = Cyra(cyra_tokenizer, 1, 512, 8, 25, path='trained-models/cyra.h5')
+    cyra_model = Cyra(cyra_tokenizer, 1, 64, 12, 2048, path='trained-models/cyra.h5')
     train_with_huge_batch(cyra_model)

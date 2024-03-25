@@ -88,16 +88,20 @@ def train_tokenizer(project_path: str, name: str):
     print(f'Starting training tokenizer...')
     tokenizer_path: str = f'{project_path}/trained-models/{name}.pickle'
 
-    print(f'Loading text data...')
-    text_dataset: str = load_dataset(f'{project_path}/dataset_preparing/output_dataset/dataset-002').lower()
+    # print(f'Loading text data...')
+    # text_dataset: str = load_dataset(f'{project_path}/dataset_preparing/output_dataset/dataset-002').lower()
 
-    tokenizer = CyraTokenizer(tokenizer_path, dataset=text_dataset)
+    tokenizer = CyraTokenizer(tokenizer_path)
 
-    test_token = tokenizer.get_sequence('привет как дела')
-    original_text = tokenizer.get_text(test_token)
+    with open('D:/tokens.txt', 'w', encoding='utf-8') as f:
+        for i in range(tokenizer.get_dimension()):
+            f.write(tokenizer.get_text([i]) + '\n')
 
-    print(test_token)
-    print(original_text)
+    # test_token = tokenizer.get_sequence('привет как дела')
+    # original_text = tokenizer.get_text(test_token)
+
+    # print(test_token)
+    # print(original_text)
 
 def print_all_tokens(tokenizer: CyraTokenizer) -> None:
 
