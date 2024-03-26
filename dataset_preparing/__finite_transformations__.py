@@ -1,5 +1,15 @@
 import os
+import lzma
 from __primary_transformations__ import *
+
+COUNT_SYMBOLS = 10 ** 9
+
+def get_symbols_from_archive(input_path: str, output_path: str, count: int) -> None:
+    with lzma.open(input_path, 'r') as archive:
+        chars = archive.read(count)
+
+    with open(output_path, 'w', encoding='utf-8') as txt_file:
+        txt_file.write(chars.decode('utf-8', 'ignore'))
 
 def convert_dataset(folder_path: str, target_folder_path: str) -> None:
 
@@ -24,7 +34,12 @@ def convert_dataset(folder_path: str, target_folder_path: str) -> None:
 
 if __name__ == '__main__':
 
-    folder_path = 'dataset_preparing/input_dataset/dataset-001'
-    target_folder_path = 'dataset_preparing/output_dataset/dataset-002'
+    # folder_path = 'dataset_preparing/input_dataset/dataset-001'
+    # target_folder_path = 'dataset_preparing/output_dataset/dataset-002'
 
-    convert_dataset(folder_path, target_folder_path)
+    # convert_dataset(folder_path, target_folder_path)
+
+    archive = "C:/Users/Atynate/Downloads/ru.txt.xz"
+    output_txt = "C:/Users/Atynate/Downloads/ru-2.txt"
+
+    get_symbols_from_archive(archive, output_txt, COUNT_SYMBOLS)

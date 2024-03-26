@@ -1,7 +1,20 @@
-import os
-import pickle
-import tensorflow_datasets as tfds
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+import re, os
+import unicodedata
+
+def get_text_from_folder(folder_path) -> None:
+    combined_text = ""
+    
+    for filename in os.listdir(folder_path):
+        if filename.endswith(".txt"):
+            with open(os.path.join(folder_path, filename), 'r', encoding='utf-8') as file:
+                combined_text += file.read() + " "
+                file.close()
+    
+    return combined_text
+
+def load_dataset(path: str) -> str:
+    with open(path, 'r', encoding='utf-8') as f:
+        return f.read()
 
 class CyraTokenizer:
 
@@ -14,103 +27,119 @@ class CyraTokenizer:
 
     """
 
-    def __init__(self, path: str, sequence_length=50, dataset=None) -> None:
-
-        self.sequence_length = sequence_length
-
-        if os.path.exists(path):
-
-            with open(path, 'rb') as f:
-
-                self.tokenizer = pickle.load(f)
-                print(f'Cyra Tokenizer was loaded, tokens: {self.get_dimension()}')
-
-        elif dataset is None:
-
-            raise ValueError("No dataset provided to train a new tokenizer.")
+    def __init__(self, path: str = None, text: str = None, count_iterations: int = 10, special_tokens=[]) -> None:
+        self.dictionary = set()
         
+        if path != None and os.path.isfile(path):
+            with open(path, 'r', encoding='utf-8') as f:
+                self.dictionary = f.read().split()
+                print(f'Cyra tokenizer was loaded, dimention: {len(self.dictionary)}')
         else:
+            self.dictionary = self.create_vocabulary(text, count_iterations)
+            self.append_special_tokens(special_tokens=special_tokens)
 
-            self.tokenizer = tfds.deprecated.text.SubwordTextEncoder.build_from_corpus(
-                (text for text in dataset.split()), 
-                target_vocab_size=2**13
-            )
-
-            print(f'Cyra Tokenizer was created, tokens: {self.get_dimension()}')
-
-            with open(path, 'wb') as f:
-
-                print(f'Saving tokenizer...')
-                pickle.dump(self.tokenizer, f)
-
-    def get_full_sequence(self, text: str) -> list:
-        return self.tokenizer.encode(text.lower())
-
-    def get_sequence(self, text: str) -> list:
-        return pad_sequences([self.tokenizer.encode(text.lower())], maxlen=self.sequence_length, padding='post')[0]
-
-    def get_text(self, sequence: list) -> str:
-        return self.tokenizer.decode(sequence) 
+            print(f'Cyra tokenizer was created, dimention: {len(self.dictionary)}')
     
-    def get_dimension(self) -> int:
-        return self.tokenizer.vocab_size
+    def cleaning_dataset(self, text: str) -> str:
+        text = text.replace(u'\xa0', u' ')
+        text = text.lower()
 
-def load_dataset(path: str) -> str:
+        return re.sub(r'[^\w]', '', text)
 
-    """
+    def append_special_tokens(self, special_tokens: list):
+        for i in range(0, 0x10FFFF):
+            char = chr(i)
+            if unicodedata.category(char)[0] in ('L', 'N', 'P', 'Z'):
+                self.dictionary.append(char)
+        
+        self.dictionary += special_tokens
+        
+    def create_pairs(self, tokens):
+        return [tokens[i:i+2] for i in range(len(tokens) - 1)]
 
-    Loads a dataset from text files 
-    in the specified directory.
+    def create_vocabulary(self, text: str, count_iterations: int) -> list:
+        print("Cleaning dataset...")
 
-    """
+        text = self.cleaning_dataset(text)
 
-    combined_text = ""
-    
-    for filename in os.listdir(path):
-        print(f'Loading: {filename}')
+        vocabulary = [char for char in text]
+        base_vocabulary = list(set(vocabulary))
 
-        if filename.endswith(".txt"):
-            with open(os.path.join(path, filename), 'r', encoding='utf-8') as file:
+        print(f'Starting Byte pair encoding, target_size: {count_iterations}')
 
-                combined_text += file.read() + " "
+        for iteration in range(count_iterations):
+            pairs = self.create_pairs(vocabulary)
+            print(f"Iteration: {iteration + 1} / {count_iterations} | {int(100 * (iteration + 1) / count_iterations)}%")
 
-    return combined_text
+            pair_to_merge = [pairs.count(i) for i in pairs]
 
-def train_tokenizer(project_path: str, name: str):
+            if max(pair_to_merge) == 1:
+                break
 
-    """
+            pair_to_merge = pair_to_merge.index(max(pair_to_merge))
 
-    Train a tokenizer based on a data 
-    set and save it to a file.
+            new_token = ''.join(pairs[pair_to_merge])
+            i = 0
 
-    """
+            while i < len(vocabulary) - 1:
 
-    print(f'Starting training tokenizer...')
-    tokenizer_path: str = f'{project_path}/trained-models/{name}.pickle'
+                if (vocabulary[i] == pairs[pair_to_merge][0] 
+                    and vocabulary[i + 1] == pairs[pair_to_merge][1]):
 
-    # print(f'Loading text data...')
-    # text_dataset: str = load_dataset(f'{project_path}/dataset_preparing/output_dataset/dataset-002').lower()
+                    vocabulary[i] = new_token
+                    vocabulary.pop(i + 1)
 
-    tokenizer = CyraTokenizer(tokenizer_path)
+                i += 1
+            
+            base_vocabulary.append(new_token)
 
-    with open('D:/tokens.txt', 'w', encoding='utf-8') as f:
-        for i in range(tokenizer.get_dimension()):
-            f.write(tokenizer.get_text([i]) + '\n')
+        return list(set(base_vocabulary))
 
-    # test_token = tokenizer.get_sequence('привет как дела')
-    # original_text = tokenizer.get_text(test_token)
+    def save_dictionary(self, path: str) -> None:
+        with open(path, 'w', encoding='utf-8') as f:
+            for token in self.dictionary:
+                f.write(f'{token}\n')
 
-    # print(test_token)
-    # print(original_text)
+    def detokenize(self, sequence: list) -> str:
+        return ''.join([self.dictionary[token] for token in sequence])
 
-def print_all_tokens(tokenizer: CyraTokenizer) -> None:
+    def tokenize(self, text: str) -> list:
+        text = text.lower().split()
+        space, sequence = self.dictionary.index(' '), []
 
-    for token in range(tokenizer.get_dimension()):
-        print(tokenizer.get_text([token]))
+        for i in range(len(text)):
+            start, end = 0, len(text[i]) + 1
+            separater = 0
+
+            while separater < len(text[i]) and end >= 0:
+
+                if text[i][start:end] in self.dictionary:
+
+                    sequence.append(self.dictionary.index(text[i][start:end]))
+                    start, separater = end, end
+                    end = len(text[i]) + 1
+
+                end -= 1
+
+            if len(text) >= 1 and i != len(text) - 1:
+                sequence.append(space)
+
+        return sequence
 
 if __name__ == '__main__':
+    path = 'D:/Exider Company/Cyra/dataset_preparing/input_dataset/dataset-001/20150302bionics.txt'
+    text = load_dataset(path)
 
-    train_tokenizer('D:/Exider Company/Cyra/', 'cyra_tokenizer')
+    cyra_tokenizer = CyraTokenizer(text=text, count_iterations=300)
+    cyra_tokenizer.save_dictionary('C:/Users/sicom/OneDrive/Рабочий стол/tokenizer.txt')
 
-    # tokenizer = CyraTokenizer('D:/Exider Company/Cyra/trained-models/cyra_tokenizer.pickle')
-    # print_all_tokens(tokenizer)
+    test_text = text[:10]
+
+    sequense = cyra_tokenizer.tokenize(test_text)
+    original_text = cyra_tokenizer.detokenize(sequense)
+
+    print(cyra_tokenizer.dictionary)
+
+    print(f"Original text: {test_text}")
+    print(f"Sequense: {sequense}")
+    print(f"Detokenize: {original_text}")
