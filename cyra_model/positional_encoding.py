@@ -1,6 +1,3 @@
-# © Andreev S. 2024, Minsk, Belarus
-# All rights reserved
-
 import numpy as np
 
 class CyraPositionalEncoding():
@@ -8,7 +5,7 @@ class CyraPositionalEncoding():
     """
 
     This Cyra model class is used to add a positioning matrix to the 
-    embedding matrix. 
+    embedding matrix.
 
     This method is described in the article - "Attention is all you need".
 

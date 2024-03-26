@@ -6,9 +6,9 @@ def get_text_from_folder(folder_path) -> None:
     
     for filename in os.listdir(folder_path):
         if filename.endswith(".txt"):
+            print(f'Reading: {filename}')
             with open(os.path.join(folder_path, filename), 'r', encoding='utf-8') as file:
                 combined_text += file.read() + " "
-                file.close()
     
     return combined_text
 
@@ -72,11 +72,12 @@ class CyraTokenizer:
             print(f"Iteration: {iteration + 1} / {count_iterations} | {int(100 * (iteration + 1) / count_iterations)}%")
 
             pair_to_merge = [pairs.count(i) for i in pairs]
+            max_element = max(pair_to_merge)
 
-            if max(pair_to_merge) == 1:
+            if max_element == 1:
                 break
 
-            pair_to_merge = pair_to_merge.index(max(pair_to_merge))
+            pair_to_merge = pair_to_merge.index(max_element)
 
             new_token = ''.join(pairs[pair_to_merge])
             i = 0
@@ -87,7 +88,7 @@ class CyraTokenizer:
                     and vocabulary[i + 1] == pairs[pair_to_merge][1]):
 
                     vocabulary[i] = new_token
-                    vocabulary.pop(i + 1)
+                    del vocabulary[i + 1]
 
                 i += 1
             
@@ -127,8 +128,8 @@ class CyraTokenizer:
         return sequence
 
 if __name__ == '__main__':
-    path = 'D:/Exider Company/Cyra/dataset_preparing/input_dataset/dataset-001/20150302bionics.txt'
-    text = load_dataset(path)
+    path = 'D:/Exider Company/Cyra/dataset_preparing/output_dataset/dataset-002/'
+    text = get_text_from_folder(path)
 
     cyra_tokenizer = CyraTokenizer(text=text, count_iterations=300)
     cyra_tokenizer.save_dictionary('C:/Users/sicom/OneDrive/Рабочий стол/tokenizer.txt')
