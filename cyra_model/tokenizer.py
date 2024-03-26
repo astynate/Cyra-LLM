@@ -1,6 +1,7 @@
 import re, os
 import unicodedata
 from collections import Counter
+from collections import defaultdict
 
 def get_text_from_folder(folder_path) -> None:
     combined_text = ""
@@ -79,9 +80,9 @@ class CyraTokenizer:
                 self.dictionary.append(char)
 
         self.dictionary += special_tokens
-        
+
     def create_pairs(self, tokens):
-        return [tokens[i:i+2] for i in range(len(tokens) - 1) if tokens[i] != ' ' and tokens[i + 1] != ' ']
+        return ((tokens[i], tokens[i+1]) for i in range(len(tokens) - 1) if tokens[i] != ' ' and tokens[i + 1] != ' ')
 
     def create_vocabulary(self, text: str, count_iterations: int) -> list:
         text = self.cleaning_dataset(text)
@@ -95,26 +96,24 @@ class CyraTokenizer:
             print(f"Iteration: {iteration + 1} / {count_iterations} | {int(100 * (iteration + 1) / count_iterations)}%")
             pairs = self.create_pairs(vocabulary)
 
-            if len(pairs) < 1:
-                break
+            counter = defaultdict(int)
+            for pair in pairs:
+                counter[pair] += 1
 
-            counter = Counter(map(tuple, pairs))
-            pair_to_merge = [counter[tuple(i)] for i in pairs]
-            max_element = max(pair_to_merge)
+            pair_to_merge, max_element = max(counter.items(), key=lambda x: x[1])
 
             if max_element == 1:
                 break
 
-            pair_to_merge = pair_to_merge.index(max_element)
-            new_token = ''.join(pairs[pair_to_merge])
+            new_token = ''.join(pair_to_merge)
             new_vocabulary = []
-
             i = 0
+            len_vocabulary = len(vocabulary)
 
-            while i < len(vocabulary):
-                if (i < len(vocabulary) - 1 and 
-                    vocabulary[i] == pairs[pair_to_merge][0] and 
-                    vocabulary[i + 1] == pairs[pair_to_merge][1]):
+            while i < len_vocabulary:
+                if (i < len_vocabulary - 1 and 
+                    vocabulary[i] == pair_to_merge[0] and 
+                    vocabulary[i + 1] == pair_to_merge[1]):
                     
                     new_vocabulary.append(new_token)
                     i += 2
