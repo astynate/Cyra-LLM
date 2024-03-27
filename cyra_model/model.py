@@ -70,7 +70,7 @@ class Cyra:
         print(f'Ouput shape: {self.outputs.shape}')
 
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-            0.001,
+            0.01,
             decay_steps=100000,
             decay_rate=0.96,
             staircase=True)

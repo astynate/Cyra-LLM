@@ -36,9 +36,6 @@ def get_training_sequences_1(text: str, tokenizer) -> Tuple[np.ndarray, np.ndarr
     train_labels = np.array(valid_values)
 
     middle = len(train_labels) // 2
-
-
-
     return train_data[:middle], train_labels[:middle], train_data[middle:], train_labels[middle:]
 
 def get_training_sequences(text: str, tokenizer) -> Tuple[np.ndarray, np.ndarray]:
@@ -109,18 +106,21 @@ def train(cyra_model) -> None:
 
 @separation
 def print_dataset(train_data, train_labels) -> None:
-    
-        print(cyra_model.tokenizer.get_text(train_data), end='-->')
-        print(cyra_model.tokenizer.get_text(train_labels))
+    print(cyra_model.tokenizer.get_text(train_data), end='-->')
+    print(cyra_model.tokenizer.get_text(train_labels))
 
 def train_with_huge_batch(cyra_model) -> None:
 
     print('Loading text')
-    with open('C:/Users/Atynate/Downloads/ru-2.txt', 'r', encoding='utf-8') as dataset:
-        text = dataset.read(10 ** 7)
+    with open('D:/Exider Company/Cyra/dataset_preparing/output_dataset/dataset-002/20150302bionics.txt', 'r', encoding='utf-8') as dataset:
+        text = dataset.read(10 ** 6)
 
     print('Creating test and training samples')
     train_data, train_labels, test_data, test_labels = get_training_sequences_1(text, cyra_model.tokenizer)
+
+    space = cyra_model.tokenizer.dictionary.index(' ')
+
+    print(f'Spaces: {100 * train_labels.tolist().count(space) / len(train_labels.tolist())}%')
 
     # for i in range(len(train_data)):
     #     print_dataset(train_data[i], [train_labels[i]])
@@ -129,22 +129,28 @@ def train_with_huge_batch(cyra_model) -> None:
     #     print(f'Model weights are loded form: {checkpoint_path}')
     #     cyra_model.model.load_weights(checkpoint_path)
 
-    # print(train_data)
+    print(train_data)
     print(train_data.shape, train_labels.shape)
+
+    # with open('1.txt', 'w', encoding='utf-8') as f:
+    #     f.write(cyra_model.tokenizer.get_text(train_data.tolist()))
+
+    # with open('2.txt', 'w', encoding='utf-8') as f:
+    #     f.write(train_data.tolist())
 
     print('Start training')
     cyra_model.model.fit(train_data, 
                         train_labels, 
                         batch_size=32,
-                        epochs=10,
+                        epochs=3,
                         validation_data=(test_data, test_labels))
     
     print('Saving model')
     cyra_model.model.save_weights('D:/Exider Company/Cyra/trained-models/cyra.h5')
 
 if __name__ == '__main__':
-    cyra_tokenizer_path = 'D:/Exider Company/Cyra/trained-models/cyra_tokenizer.pickle'
-    cyra_tokenizer = CyraTokenizer(cyra_tokenizer_path, 50)
+    cyra_tokenizer_path = 'D:/Exider Company/Cyra/trained-models/tokenizer.txt'
+    cyra_tokenizer = CyraTokenizer(cyra_tokenizer_path)
 
-    cyra_model = Cyra(cyra_tokenizer, 8, 512, 12, 2048, path='D:/Exider Company/Cyra/trained-models/cyra.h5')
+    cyra_model = Cyra(cyra_tokenizer, 8, 128, 12, 2048, path='D:/Exider Company/Cyra/trained-models/cyra.h5')
     train_with_huge_batch(cyra_model)

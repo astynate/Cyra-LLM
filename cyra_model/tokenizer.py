@@ -1,7 +1,6 @@
 import re, os
 import unicodedata
 from collections import Counter
-from collections import defaultdict
 
 def get_text_from_folder(folder_path) -> None:
     combined_text = ""
@@ -33,15 +32,18 @@ class CyraTokenizer:
             self, 
             path: str = None, 
             text: str = None, 
-            count_iterations: int = 10, 
-            special_tokens=['<sentence>', '</sentence>', '<textend>', '<padding>', '<unknown>']
+            count_iterations: int = 10,
+            sequence_length=50,
+            special_tokens=['<sentence>', '</sentence>', '<textend>', '<padding>', '<unknown>', ' ']
         ):
         
         self.dictionary = set()
-        
+        self.sequence_length = sequence_length
+        self.special_tokens = special_tokens
+
         if path is not None and os.path.isfile(path):
             with open(path, 'r', encoding='utf-8') as f:
-                self.dictionary = f.read().split()
+                self.dictionary = f.read().split('\n')
                 print(f'Cyra tokenizer was loaded, dimention: {len(self.dictionary)}')
         else:
             self.dictionary = self.create_vocabulary(text, count_iterations)
@@ -76,13 +78,13 @@ class CyraTokenizer:
             
         for i in range(0, 0x10FFFF):
             char = chr(i)
-            if unicodedata.category(char)[0] in ('Z'):
+            if unicodedata.category(char)[0] in ('Z', 'P'):
                 self.dictionary.append(char)
 
         self.dictionary += special_tokens
-
+        
     def create_pairs(self, tokens):
-        return ((tokens[i], tokens[i+1]) for i in range(len(tokens) - 1) if tokens[i] != ' ' and tokens[i + 1] != ' ')
+        return [tokens[i:i+2] for i in range(len(tokens) - 1) if tokens[i] != ' ' and tokens[i + 1] != ' ']
 
     def create_vocabulary(self, text: str, count_iterations: int) -> list:
         text = self.cleaning_dataset(text)
@@ -96,24 +98,26 @@ class CyraTokenizer:
             print(f"Iteration: {iteration + 1} / {count_iterations} | {int(100 * (iteration + 1) / count_iterations)}%")
             pairs = self.create_pairs(vocabulary)
 
-            counter = defaultdict(int)
-            for pair in pairs:
-                counter[pair] += 1
+            if len(pairs) < 1:
+                break
 
-            pair_to_merge, max_element = max(counter.items(), key=lambda x: x[1])
+            counter = Counter(map(tuple, pairs))
+            pair_to_merge = [counter[tuple(i)] for i in pairs]
+            max_element = max(pair_to_merge)
 
             if max_element == 1:
                 break
 
-            new_token = ''.join(pair_to_merge)
+            pair_to_merge = pair_to_merge.index(max_element)
+            new_token = ''.join(pairs[pair_to_merge])
             new_vocabulary = []
-            i = 0
-            len_vocabulary = len(vocabulary)
 
-            while i < len_vocabulary:
-                if (i < len_vocabulary - 1 and 
-                    vocabulary[i] == pair_to_merge[0] and 
-                    vocabulary[i + 1] == pair_to_merge[1]):
+            i = 0
+
+            while i < len(vocabulary):
+                if (i < len(vocabulary) - 1 and 
+                    vocabulary[i] == pairs[pair_to_merge][0] and 
+                    vocabulary[i + 1] == pairs[pair_to_merge][1]):
                     
                     new_vocabulary.append(new_token)
                     i += 2
@@ -132,12 +136,17 @@ class CyraTokenizer:
             for token in self.dictionary:
                 f.write(f'{token}\n')
 
-    def detokenize(self, sequence: list) -> str:
+    def get_text(self, sequence: list) -> str:
         return ''.join([self.dictionary[token] for token in sequence])
 
-    def tokenize(self, text: str) -> list:
+    def get_full_sequence(self, text: str) -> list:
+        sentences = re.split('(?<=[.!?]) +', text)
+        sentences = ['<sentence>' + sentence + '</sentence>' for sentence in sentences]
+        print(sentences)
+        text = ' '.join(sentences)
         text = text.lower().split()
-        space, unknown_token, sequence = self.dictionary.index(' '), self.dictionary.index('<unknown>'),  []
+        space, unknown_token = self.dictionary.index(' '), self.dictionary.index('<unknown>')
+        sequence = []
 
         for i in range(len(text)):
             start, end = 0, len(text[i]) + 1
@@ -160,19 +169,35 @@ class CyraTokenizer:
                 sequence.append(space)
 
         return sequence
+    
+    def get_dimension(self):
+        return len(self.dictionary)
+    
+    def get_sequence(self, text):
+        sequence = self.get_full_sequence(text)
+
+        if len(sequence) > self.sequence_length:
+            return sequence[:50]
+        
+        elif len(sequence) < self.sequence_length:
+            padding_token = self.dictionary.index('<padding>')
+            padding = [padding_token] * (self.sequence_length - len(sequence))
+            sequence.extend(padding)
+
+        return sequence
 
 if __name__ == '__main__':
-    path = 'D:/Exider Company/Cyra/dataset_preparing/input_dataset/dataset-001'
+    path = 'D:/Exider Company/Cyra/dataset_preparing/input_dataset/dataset-002'
     text = get_text_from_folder(path)
 
-    cyra_tokenizer = CyraTokenizer(text=text, count_iterations=2**12)
-    cyra_tokenizer.save_dictionary('D:/Exider Company/Cyra/trained-models/tokenizer.txt')
+    cyra_tokenizer = CyraTokenizer(path='D:/Exider Company/Cyra/trained-models/tokenizer.txt', count_iterations=2**11)
+    # cyra_tokenizer.save_dictionary('D:/Exider Company/Cyra/trained-models/tokenizer.txt')
 
-    test_text = text[:30] + '😀'
+    test_text = text[:20] + '😀'
 
-    sequense = cyra_tokenizer.tokenize(test_text)
-    original_text = cyra_tokenizer.detokenize(sequense)
+    sequense = cyra_tokenizer.get_sequence(test_text)
+    original_text = cyra_tokenizer.get_text(sequense)
 
-    print(f"Original text: {test_text}")
-    print(f"Sequense: {sequense}")
+    print(f"Original text: {test_text} | count words: {len(test_text.split())}")
+    print(f"Sequense: {sequense} | count tokens: {len(sequense)}")
     print(f"Detokenize: {original_text}")
