@@ -1,12 +1,7 @@
-import os
-import glob
 from typing import Tuple
 import numpy as np
-import random
-import math
 from cyra_model.model import Cyra
 from cyra_model.tokenizer import CyraTokenizer
-from dataset_preparing.__download__ import get_text_from_folder
 import tensorflow as tf
 
 def separation(func):
@@ -21,15 +16,18 @@ def separation(func):
 def print_current_num(text: str) -> None:
     print(text)
 
-def get_training_sequences_1(text: str, tokenizer) -> Tuple[np.ndarray, np.ndarray]:
+def get_training_sequences(text: str, tokenizer) -> Tuple[np.ndarray, np.ndarray]:
     sequence = tokenizer.get_full_sequence(text)
+    incorrect = [' ', '<unknown>']
     length = 50
 
     print('0%')
-    input_values = [sequence[i:i+length] for i in range(len(sequence) - length) if tokenizer.get_text([sequence[i + length]]) != '\ufffd' and ' ']
+    input_values = [sequence[i:i+length] for i in range(len(sequence) - length)
+                    if tokenizer.get_text([sequence[i + length]]) not in incorrect]
     
     print('50%')
-    valid_values = [sequence[i + length] for i in range(len(sequence) - length) if tokenizer.get_text([sequence[i + length]]) != '\ufffd' and ' ']
+    valid_values = [sequence[i + length] for i in range(len(sequence) - length)
+                    if tokenizer.get_text([sequence[i + length]]) not in incorrect]
     
     print('90%')
     train_data = np.array(input_values)
@@ -37,72 +35,6 @@ def get_training_sequences_1(text: str, tokenizer) -> Tuple[np.ndarray, np.ndarr
 
     middle = len(train_labels) // 2
     return train_data[:middle], train_labels[:middle], train_data[middle:], train_labels[middle:]
-
-def get_training_sequences(text: str, tokenizer) -> Tuple[np.ndarray, np.ndarray]:
-    sequence = tokenizer.get_full_sequence(text)
-
-    input_values = []
-    valid_values = []
-    min_length = 2
-    max_length = 50
-
-    for i in range(len(sequence) - max_length):
-
-        length = random.randint(min_length, max_length)
-
-        if tokenizer.get_text([sequence[i + length]]) != '\ufffd':
-
-            input_values.append(tokenizer.get_sequence(tokenizer.get_text(sequence[i:i + length])))
-            valid_values.append(sequence[i + length])
-
-        print(f'Do: {round(100 * (i / (len(sequence) - max_length)), 2)}%')
-
-    train_data = np.array(input_values, dtype='float16')
-    train_labels = np.array(valid_values, dtype='float16')
-
-    middle = len(train_labels) // 2
-
-    return train_data[:middle], train_labels[:middle], train_data[middle:], train_labels[middle:]
-
-def train(cyra_model) -> None:
-    
-    txt_files = glob.glob(os.path.join('D:/Exider Company/Cyra/dataset_preparing/output_dataset/dataset-002', '*.txt'))
-    
-    print(f'Files in your dataset: {len(txt_files)}')
-
-    for txt_file in txt_files:
-
-        print_current_num(f'Reading: {txt_files.index(txt_file)}/{len(txt_files)}')
-
-        with open(txt_file, 'r', encoding='utf-8') as infile:
-            text = infile.read()
-
-        train_data, train_labels, test_data, test_labels = get_training_sequences(text, cyra_model.tokenizer)
-        checkpoint_path = "trained-models/cyra_check_point.ckpt"
-
-        # for token in train_labels:
-        #     print(cyra_model.tokenizer.get_text([token]))
-
-        cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-                                                        save_weights_only=True,
-                                                        verbose=1,
-                                                        save_freq='epoch',
-                                                        period=50)
-
-        # if os.path.exists('trained-models/cyra_check_point.ckpt_temp'):
-        #     print(f'Model weights are loded form: {checkpoint_path}')
-        #     cyra_model.model.load_weights(checkpoint_path)
-
-        cyra_model.model.fit(train_data, 
-                            train_labels, 
-                            batch_size=1, 
-                            epochs=1,
-                            validation_data=(test_data, test_labels), 
-                            callbacks=[cp_callback])
-
-        # if (txt_files.index(txt_file) % 5 == 0):
-
-        #     cyra_model.model.save('D:/Exider Company/Cyra/trained-models/cyra.h5')
 
 @separation
 def print_dataset(train_data, train_labels) -> None:
@@ -112,11 +44,11 @@ def print_dataset(train_data, train_labels) -> None:
 def train_with_huge_batch(cyra_model) -> None:
 
     print('Loading text')
-    with open('D:/Exider Company/Cyra/dataset_preparing/output_dataset/dataset-002/20150302bionics.txt', 'r', encoding='utf-8') as dataset:
-        text = dataset.read(10 ** 6)
+    with open('C:/Users/Atynate/Downloads/ru-2.txt', 'r', encoding='utf-8') as dataset:
+        text = dataset.read(8 ** 7)
 
     print('Creating test and training samples')
-    train_data, train_labels, test_data, test_labels = get_training_sequences_1(text, cyra_model.tokenizer)
+    train_data, train_labels, test_data, test_labels = get_training_sequences(text, cyra_model.tokenizer)
 
     space = cyra_model.tokenizer.dictionary.index(' ')
 
@@ -129,8 +61,28 @@ def train_with_huge_batch(cyra_model) -> None:
     #     print(f'Model weights are loded form: {checkpoint_path}')
     #     cyra_model.model.load_weights(checkpoint_path)
 
-    print(train_data)
-    print(train_data.shape, train_labels.shape)
+    for i in range(train_data.shape[0]):
+        if (np.isnan(train_data[i]).any() or np.isnan(train_labels[i]).any() or np.isnan(test_data[i]).any() or np.isnan(test_labels[i]).any()):
+            print("NAN!")
+
+    # print(train_data)
+    # print(train_data.shape, train_labels.shape)
+
+    # unique, counts = np.unique(train_labels, return_counts=True)
+
+    # # Находим индекс самого часто встречающегося элемента
+    # index = np.argmax(counts)
+
+    # # Самый часто встречающийся элемент
+    # most_frequent = unique[index]
+
+    # # Процент от общего числа элементов
+    # percentage = counts[index] / len(train_labels.tolist()) * 100
+
+    # print(f'Самый часто встречающийся элемент: {most_frequent}')
+    # print(f'Процент от общего числа элементов: {percentage}%')
+
+    # tf.keras.losses.sparse_categorical_crossentropy(np.array([1, 1, 1]), np.array([1, 1, 1]))
 
     # with open('1.txt', 'w', encoding='utf-8') as f:
     #     f.write(cyra_model.tokenizer.get_text(train_data.tolist()))
@@ -141,9 +93,10 @@ def train_with_huge_batch(cyra_model) -> None:
     print('Start training')
     cyra_model.model.fit(train_data, 
                         train_labels, 
-                        batch_size=32,
-                        epochs=3,
-                        validation_data=(test_data, test_labels))
+                        batch_size=64,
+                        epochs=1)
+
+    # print(cyra_model("Hello adadasd"))
     
     print('Saving model')
     cyra_model.model.save_weights('D:/Exider Company/Cyra/trained-models/cyra.h5')
@@ -152,5 +105,5 @@ if __name__ == '__main__':
     cyra_tokenizer_path = 'D:/Exider Company/Cyra/trained-models/tokenizer.txt'
     cyra_tokenizer = CyraTokenizer(cyra_tokenizer_path)
 
-    cyra_model = Cyra(cyra_tokenizer, 8, 128, 12, 2048, path='D:/Exider Company/Cyra/trained-models/cyra.h5')
+    cyra_model = Cyra(cyra_tokenizer, 12, 256, 12, 2048, path='D:/Exider Company/Cyra/trained-models/cyra.h5')
     train_with_huge_batch(cyra_model)

@@ -3,14 +3,12 @@ from cyra_model.transformer import TransformerBlock
 from cyra_model.positional_encoding import CyraPositionalEncoding
 from tensorflow.keras import mixed_precision
 from tensorflow.keras.layers import Input, Dense, Embedding, Dropout, LayerNormalization, Flatten, Lambda
-from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Model
 import numpy as np
-from tensorflow.keras.models import load_model
 import os
 import tensorflow as tf
 
-mixed_precision.set_global_policy('mixed_float16')
+# mixed_precision.set_global_policy('mixed_float64')
 
 class GradientClippingOptimizer(tf.keras.optimizers.Adam):
     def get_gradients(self, loss, params):
@@ -27,15 +25,15 @@ custom_objects = {
 }
 
 def create_attention_mask(input):
-    seq = tf.cast(tf.math.equal(input, 0), tf.float16)
+    seq = tf.cast(tf.math.equal(input, 0), tf.float64)
     return seq[:, tf.newaxis, tf.newaxis, :]
 
 class Cyra:
     def __init__(self, tokenizer, transformer_block_counter, embedding_dim, num_heads, feed_forward_dim, **kwargs) -> None:
         self.tokenizer = tokenizer
 
-        self.inputs = Input(shape=(self.tokenizer.sequence_length,))
-        self.embedding = Embedding(input_dim=self.tokenizer.get_dimension(), output_dim=embedding_dim)(self.inputs)
+        self.inputs = Input(shape=(self.tokenizer.sequence_length,), dtype='float64')
+        self.embedding = Embedding(input_dim=self.tokenizer.get_dimension(), output_dim=embedding_dim, dtype='float64')(self.inputs)
 
         self.pos_encoding = CyraPositionalEncoding(self.tokenizer.sequence_length, embedding_dim)(self.embedding)
         self.pos_encoding = Dropout(0.1)(self.pos_encoding)
@@ -53,10 +51,10 @@ class Cyra:
                 attention_mask=self.attention_mask
             )
 
-        self.transformer_block = Flatten()(self.transformer_block)
-        self.transformer_block = LayerNormalization()(self.transformer_block)
+        self.transformer_block = Flatten(dtype='float64')(self.transformer_block)
+        self.transformer_block = LayerNormalization(dtype='float64')(self.transformer_block)
 
-        self.outputs = Dense(self.tokenizer.get_dimension(), activation='softmax', kernel_initializer='glorot_uniform')(self.transformer_block)
+        self.outputs = Dense(self.tokenizer.get_dimension(), activation='softmax', kernel_initializer='glorot_uniform', dtype='float64')(self.transformer_block)
         self.model = Model(inputs=self.inputs, outputs=self.outputs)
 
         if (kwargs.get('path') and os.path.isfile(kwargs.get('path'))):
@@ -70,12 +68,12 @@ class Cyra:
         print(f'Ouput shape: {self.outputs.shape}')
 
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-            0.01,
+            0.00001,
             decay_steps=100000,
-            decay_rate=0.96,
+            decay_rate=0.9999,
             staircase=True)
 
-        self.model.compile(optimizer=GradientClippingOptimizer(learning_rate=lr_schedule), 
+        self.model.compile(optimizer=GradientClippingOptimizer(learning_rate=1e-5), 
                            loss='sparse_categorical_crossentropy', 
                            metrics=['sparse_categorical_accuracy'])
 

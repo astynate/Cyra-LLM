@@ -10,10 +10,10 @@ import os
 
 mixed_precision.set_global_policy('mixed_float16')
 
-cyra_tokenizer_path = 'D:/Exider Company/Cyra/trained-models/cyra_tokenizer.pickle'
+cyra_tokenizer_path = 'D:/Exider Company/Cyra/trained-models/tokenizer.txt'
 cyra_tokenizer = CyraTokenizer(cyra_tokenizer_path, 50)
 
-cyra_model = Cyra(cyra_tokenizer, 8, 512, 12, 2048, path='D:/Exider Company/Cyra/trained-models/cyra.h5')
+cyra_model = Cyra(cyra_tokenizer, 12, 256, 12, 2048, path='D:/Exider Company/Cyra/trained-models/cyra.h5')
 # checkpoint_path = "D:/Exider Company/Cyra/trained-models/cyra_check_point.ckpt"
 
 # if os.path.exists(checkpoint_path):

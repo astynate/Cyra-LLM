@@ -142,9 +142,8 @@ class CyraTokenizer:
     def get_full_sequence(self, text: str) -> list:
         sentences = re.split('(?<=[.!?]) +', text)
         sentences = ['<sentence>' + sentence + '</sentence>' for sentence in sentences]
-        print(sentences)
         text = ' '.join(sentences)
-        text = text.lower().split()
+        text = text.lower()
         space, unknown_token = self.dictionary.index(' '), self.dictionary.index('<unknown>')
         sequence = []
 
